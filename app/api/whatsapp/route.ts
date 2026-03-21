@@ -16,19 +16,34 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]
+    
+    const entry = body.entry?.[0]
+    const change = entry?.changes?.[0]
+    const value = change?.value
+    const message = value?.messages?.[0]
 
-    if (!message || message.type !== 'text') {
+    console.log('Incoming body:', JSON.stringify(body, null, 2))
+
+    if (!message) {
+      console.log('No message found - likely a status update')
+      return NextResponse.json({ status: 'no message' })
+    }
+
+    if (message.type !== 'text') {
+      console.log('Non-text message:', message.type)
       return NextResponse.json({ status: 'ignored' })
     }
 
     const phone = message.from
     const text = message.text.body
 
+    console.log(`Message from ${phone}: ${text}`)
+
     handleMessage(phone, text).catch(console.error)
 
     return NextResponse.json({ status: 'ok' })
   } catch (err) {
+    console.error('Webhook error:', err)
     return NextResponse.json({ status: 'error' }, { status: 500 })
   }
 }
